@@ -44,7 +44,7 @@ def build_where_clause(conditions: Union[str, Dict[str, Any], List[tuple]], oper
     return f" {operator} ".join(clauses), params
 
 
-class Database:
+class SQLite3:
     def __init__(self, database, autocommit=True, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False):
         self.database = database
         self.autocommit = autocommit
@@ -52,6 +52,8 @@ class Database:
         self.check_same_thread = check_same_thread
         self.conn: Optional[sqlite3.Connection] = None
         self.in_transaction = False
+        sqlite3.register_adapter(list, lambda x: json.dumps(x).encode('utf-8'))
+        sqlite3.register_converter("LIST", lambda x: json.loads(x.decode('utf-8')))
 
     def __enter__(self):
         self.connect()
@@ -175,7 +177,7 @@ class Database:
         if_not_exists_clause = "IF NOT EXISTS " if if_not_exists else ""
         query = f"""
             CREATE TABLE {if_not_exists_clause}{table_name} (
-                {', '.join(columns)}
+                {', '.join(columns)})
         """
         self.execute(query, commit=True)
         logger.info(f"Table {table_name} created")
