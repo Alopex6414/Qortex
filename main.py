@@ -42,7 +42,6 @@ if __name__ == '__main__':
         "answerCodeFaultWillBeCorrected": "TEXT",
         "fixedVersions": "TEXT"
     })
-    # sqlite.batch_insert("fst_customer", dataset)
-    result = sqlite.query("fst_customer")
+    result = sqlite.query(table_name="fst_customer", where="")
     print(result)
     pass

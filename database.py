@@ -350,37 +350,37 @@ class MySQL:
         self.connection: Optional[mysql.connector.MySQLConnection] = None
 
     def __enter__(self):
-        """实现上下文管理协议，进入时自动连接"""
+        """enter"""
         self.connect()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """实现上下文管理协议，退出时自动关闭连接"""
+        """exit"""
         self.close()
 
     def connect(self) -> bool:
-        """建立数据库连接"""
+        """establish database connection"""
         try:
             self.connection = mysql.connector.connect(**self.config)
-            print("成功连接到MySQL数据库")
+            logger.info("Connected to database successfully")
             return True
         except Error as e:
-            print(f"连接错误: {e}")
+            logger.error(f"Connected to database error: {e}")
             return False
 
     def close(self) -> None:
-        """关闭数据库连接"""
+        """close database connection"""
         if self.connection and self.connection.is_connected():
             self.connection.close()
-            print("数据库连接已关闭")
+            logger.info("Database already been closed")
 
     def execute_query(self, query: str, params: tuple = None, dictionary: bool = True) -> List[Dict[str, Any]]:
         """
-        执行查询语句
-        :param query: SQL查询语句
-        :param params: 查询参数
-        :param dictionary: 是否返回字典格式结果
-        :return: 查询结果列表
+        execute query
+        :param query: SQL query
+        :param params: query parameters
+        :param dictionary: whether return dictionary or not
+        :return: result
         """
         results = []
         try:
@@ -388,15 +388,15 @@ class MySQL:
                 cursor.execute(query, params)
                 results = cursor.fetchall()
         except Error as e:
-            print(f"查询错误: {e}")
+            logger.error(f"Query failed: {e}")
         return results
 
     def execute_command(self, query: str, params: tuple = None) -> int:
         """
-        执行写操作（INSERT/UPDATE/DELETE）
-        :param query: SQL语句
-        :param params: 参数元组
-        :return: 受影响的行数
+        execute command
+        :param query: SQL query
+        :param params: query parameters
+        :return: result
         """
         try:
             with self.connection.cursor() as cursor:
@@ -405,15 +405,15 @@ class MySQL:
                 return cursor.rowcount
         except Error as e:
             self.connection.rollback()
-            print(f"操作错误: {e}")
+            logger.error(f"Execute error: {e}")
             return 0
 
     def batch_execute(self, query: str, params_list: List[tuple]) -> int:
         """
-        批量执行写操作
-        :param query: SQL语句
-        :param params_list: 参数列表
-        :return: 受影响的总行数
+        batch execute command
+        :param query: SQL query
+        :param params_list: query parameter list
+        :return: result
         """
         try:
             with self.connection.cursor() as cursor:
@@ -422,12 +422,11 @@ class MySQL:
                 return cursor.rowcount
         except Error as e:
             self.connection.rollback()
-            print(f"批量操作错误: {e}")
+            logger.error(f"Batch execute error: {e}")
             return 0
 
-    # 以下是针对users表的专用方法
     def create_users_table(self) -> None:
-        """创建用户表"""
+        """create users table"""
         create_table_query = """
         CREATE TABLE IF NOT EXISTS users (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -437,51 +436,51 @@ class MySQL:
         )
         """
         self.execute_command(create_table_query)
-        print("用户表创建成功")
+        logger.info("Users table created successfully")
 
     def insert_user(self, name: str, age: int, email: str) -> int:
-        """插入单个用户"""
+        """insert user"""
         insert_query = """
         INSERT INTO users (name, age, email)
         VALUES (%s, %s, %s)
         """
         rowcount = self.execute_command(insert_query, (name, age, email))
         if rowcount > 0:
-            print(f"用户 {name} 插入成功")
+            logger.info(f"User {name} insert successfully")
         return rowcount
 
     def batch_insert_users(self, users: List[tuple]) -> int:
-        """批量插入用户"""
+        """batch insert users"""
         insert_query = """
         INSERT INTO users (name, age, email)
         VALUES (%s, %s, %s)
         """
         rowcount = self.batch_execute(insert_query, users)
         if rowcount > 0:
-            print(f"批量插入成功，共 {rowcount} 条记录")
+            logger.info(f"Batch insert users successfully，total {rowcount} records inserted")
         return rowcount
 
     def get_all_users(self) -> List[Dict[str, Any]]:
-        """获取所有用户"""
+        """get all users"""
         query = "SELECT * FROM users"
         results = self.execute_query(query)
-        print(f"找到 {len(results)} 条用户记录")
+        logger.info(f"find {len(results)} users records")
         return results
 
     def update_user_age(self, user_id: int, new_age: int) -> int:
-        """更新用户年龄"""
+        """update user age"""
         update_query = "UPDATE users SET age = %s WHERE id = %s"
         rowcount = self.execute_command(update_query, (new_age, user_id))
         if rowcount > 0:
-            print(f"用户 {user_id} 年龄更新成功")
+            logger.info(f"user {user_id} age updated successfully")
         return rowcount
 
     def delete_user(self, user_id: int) -> int:
-        """删除用户"""
+        """delete user"""
         delete_query = "DELETE FROM users WHERE id = %s"
         rowcount = self.execute_command(delete_query, (user_id,))
         if rowcount > 0:
-            print(f"用户 {user_id} 删除成功")
+            logger.info(f"user {user_id} deleted successfully")
         return rowcount
 
 
