@@ -486,7 +486,7 @@ class MySQL:
 
 
 class RedisClient:
-    """Redis客户端封装类"""
+    """Redis Client"""
 
     _pool = None  # 连接池实例
 
@@ -494,12 +494,12 @@ class RedisClient:
                  password: str = None, db: int = 0,
                  max_connections: int = 20):
         """
-        初始化Redis连接
-        :param host: Redis服务器地址
-        :param port: Redis端口
-        :param password: 认证密码
-        :param db: 数据库编号
-        :param max_connections: 连接池最大连接数
+        init Redid
+        :param host: Redis host address
+        :param port: Redis port
+        :param password: authentication password
+        :param db: database number
+        :param max_connections: maximum connections
         """
         if not RedisClient._pool:
             RedisClient._pool = redis.ConnectionPool(
@@ -508,68 +508,68 @@ class RedisClient:
                 password=password,
                 db=db,
                 max_connections=max_connections,
-                decode_responses=True  # 自动解码返回字符串类型
+                decode_responses=True
             )
         self._client = redis.Redis(connection_pool=RedisClient._pool)
 
     def __enter__(self):
-        """支持上下文管理"""
+        """enter"""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """退出上下文时自动关闭连接"""
+        """exit"""
         self.close()
 
     def close(self):
-        """释放连接回连接池"""
+        """close"""
         self._client.close()
 
     def set(self, key: str, value: Any, ex: int = None) -> bool:
-        """存储键值对"""
+        """store set"""
         try:
             return self._client.set(key, value, ex=ex)
         except redis.RedisError as e:
-            logger.error(f"Redis set操作失败: {str(e)}")
+            logger.error(f"Redis set error: {str(e)}")
             raise
 
     def get(self, key: str) -> Optional[str]:
-        """获取键值"""
+        """get key"""
         try:
             return self._client.get(key)
         except redis.RedisError as e:
-            logger.error(f"Redis get操作失败: {str(e)}")
+            logger.error(f"Redis get error: {str(e)}")
             return None
 
     def delete(self, *keys: str) -> int:
-        """删除键"""
+        """delete key"""
         try:
             return self._client.delete(*keys)
         except redis.RedisError as e:
-            logger.error(f"Redis delete操作失败: {str(e)}")
+            logger.error(f"Redis delete error: {str(e)}")
             return 0
 
     def hset(self, name: str, mapping: Dict[str, Any]) -> int:
-        """设置哈希字段"""
+        """hash set"""
         try:
             return self._client.hset(name, mapping=mapping)
         except redis.RedisError as e:
-            logger.error(f"Redis hset操作失败: {str(e)}")
+            logger.error(f"Redis hset error: {str(e)}")
             return 0
 
     def hgetall(self, name: str) -> Dict[str, str]:
-        """获取全部哈希字段"""
+        """hash get all"""
         try:
             return self._client.hgetall(name)
         except redis.RedisError as e:
-            logger.error(f"Redis hgetall操作失败: {str(e)}")
+            logger.error(f"Redis hgetall error: {str(e)}")
             return {}
 
     def expire(self, key: str, seconds: int) -> bool:
-        """设置过期时间"""
+        """set expire"""
         try:
             return self._client.expire(key, seconds)
         except redis.RedisError as e:
-            logger.error(f"Redis expire操作失败: {str(e)}")
+            logger.error(f"Redis expire error: {str(e)}")
             return False
 
 
