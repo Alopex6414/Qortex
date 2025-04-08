@@ -37,6 +37,8 @@ def clean_data(data:List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             item.update({"customers": []})
         if not "teamName" in item.keys():
             item.update({"teamName": ""})
+        if not "closedDate" in item.keys():
+            item.update({"closedDate": ""})
         dataset.append(item)
     return dataset
 

@@ -488,7 +488,7 @@ class MySQL:
 class RedisClient:
     """Redis Client"""
 
-    _pool = None  # 连接池实例
+    _pool = None
 
     def __init__(self, host: str = 'localhost', port: int = 6379,
                  password: str = None, db: int = 0,
