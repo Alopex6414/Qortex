@@ -8,7 +8,7 @@ def load_json(path):
     with open(path, "r", encoding="utf-8") as fr:
         return json.load(fr)
 
-def clean_data(data:List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def formalize(data:List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     dataset = list()
     for item in data:
         if not "includedInBuild" in item.keys():
@@ -39,6 +39,14 @@ def clean_data(data:List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             item.update({"teamName": ""})
         if not "closedDate" in item.keys():
             item.update({"closedDate": ""})
+        if not "assignedDate" in item.keys():
+            item.update({"assignedDate": ""})
+        if not "trOverdueDate" in item.keys():
+            item.update({"trOverdueDate": ""})
+        if not "assignee" in item.keys():
+            item.update({"assignee": ""})
+        if not "answerCategory" in item.keys():
+            item.update({"answerCategory": ""})
         dataset.append(item)
     return dataset
 
