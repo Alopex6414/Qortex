@@ -76,6 +76,6 @@ if __name__ == '__main__':
         "answerCodeFaultWillBeCorrected": "TEXT",
         "fixedVersions": "TEXT"
     })
-    #result = sqlite.query(table_name="customer", where="")
-    #print(result)
+    result = sqlite.query(table_name="customer", where="investigatedDate BETWEEN '2025-01-01' AND '2025-12-31'")
+    print(result)
     pass
