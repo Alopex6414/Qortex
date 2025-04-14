@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import statistics
 from database import SQLite3
 from utils import load_json, formalize
 
@@ -76,6 +77,7 @@ if __name__ == '__main__':
         "answerCodeFaultWillBeCorrected": "TEXT",
         "fixedVersions": "TEXT"
     })
-    result = sqlite.query(table_name="customer", where="investigatedDate BETWEEN '2025-01-01' AND '2025-12-31'")
+    result = sqlite.query(table_name="customer", where="investigatedDate BETWEEN '2021-01-01' AND '2025-12-31'")
     print(result)
+    sort = statistics.statistics_sort_by_customers(result)
     pass
