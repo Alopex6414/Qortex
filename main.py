@@ -77,7 +77,7 @@ if __name__ == '__main__':
         "answerCodeFaultWillBeCorrected": "TEXT",
         "fixedVersions": "TEXT"
     })
-    result = sqlite.query(table_name="customer", where="investigatedDate BETWEEN '2021-01-01' AND '2025-12-31'")
+    result = sqlite.query(table_name="internal", where="investigatedDate BETWEEN '2021-01-01' AND '2025-12-31'")
     print(result)
-    sort = statistics.statistics_sort_by_customers(result)
+    sort = statistics.statistics_sort_by_priority(result)
     pass

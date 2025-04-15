@@ -34,6 +34,26 @@ def statistics_sort_by_customers(dataset:List[Dict[str, Any]]) -> List[Tuple[str
     results = Counter(subset).most_common()
     return results
 
+def statistics_sort_by_team_name(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
+    # create list
+    subset = list()
+    for k, v in enumerate(dataset):
+        if v.get('teamName') is not None:
+            subset.append(v.get('teamName'))
+    # statistics result
+    results = Counter(subset).most_common()
+    return results
+
+def statistics_sort_by_status(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
+    # create list
+    subset = list()
+    for k, v in enumerate(dataset):
+        if v.get('status') is not None:
+            subset.append(v.get('status'))
+    # statistics result
+    results = Counter(subset).most_common()
+    return results
+
 
 if __name__ == '__main__':
     pass
