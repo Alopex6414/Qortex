@@ -17,6 +17,17 @@ def graphics_plot_pie(dataset:List[Tuple[str, Any]]) -> None:
     plt.pie(values, labels=keys)
     plt.show()
 
+def graphics_plot_bar(dataset:List[Tuple[str, Any]]) -> None:
+    # extract keys and values from dataset
+    keys = list()
+    values = list()
+    for k, v in enumerate(dataset):
+        keys.append(v[0])
+        values.append(v[1])
+    # plot bar graphics
+    plt.bar(keys, values)
+    plt.show()
+
 if __name__ == '__main__':
     # create database
     sqlite = SQLite3("./database/qortex.db")
@@ -25,4 +36,5 @@ if __name__ == '__main__':
     # sort dataset
     sorted_dataset = statistics_sort_by_importance(dataset)
     graphics_plot_pie(sorted_dataset)
+    graphics_plot_bar(sorted_dataset)
     pass
