@@ -54,6 +54,26 @@ def statistics_sort_by_status(dataset:List[Dict[str, Any]]) -> List[Tuple[str, A
     results = Counter(subset).most_common()
     return results
 
+def statistics_sort_by_fixed_versions(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
+    # create list
+    subset = list()
+    for k, v in enumerate(dataset):
+        if v.get('fixedVersions') is not None:
+            subset.append(v.get('fixedVersions'))
+    # statistics result
+    results = Counter(subset).most_common()
+    return results
+
+def statistics_sort_by_fault_code_b2(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
+    # create list
+    subset = list()
+    for k, v in enumerate(dataset):
+        if v.get('faultCodeB2') is not None:
+            subset.append(v.get('faultCodeB2'))
+    # statistics result
+    results = Counter(subset).most_common()
+    return results
+
 
 if __name__ == '__main__':
     pass

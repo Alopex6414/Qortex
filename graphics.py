@@ -34,7 +34,7 @@ if __name__ == '__main__':
     # query dataset
     dataset = sqlite.query(table_name="internal", where="investigatedDate BETWEEN '2021-01-01' AND '2025-12-31'")
     # sort dataset
-    sorted_dataset = statistics_sort_by_importance(dataset)
+    sorted_dataset = statistics_sort_by_fault_code_b2(dataset)
     graphics_plot_pie(sorted_dataset)
     graphics_plot_bar(sorted_dataset)
     pass
