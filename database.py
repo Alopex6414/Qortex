@@ -47,7 +47,7 @@ def build_where_clause(conditions: Union[str, Dict[str, Any], List[tuple]], oper
 
 
 class SQLite3:
-    def __init__(self, database, autocommit=True, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False):
+    def __init__(self, database: str, autocommit: bool = True, detect_types: int = sqlite3.PARSE_DECLTYPES, check_same_thread: bool = False):
         self.database = database
         self.autocommit = autocommit
         self.detect_types = detect_types
