@@ -6,7 +6,7 @@ from database import SQLite3
 from statistics import *
 
 
-def graphics_plot_pie(dataset:List[Tuple[str, Any]]) -> None:
+def graphics_plot_pie(dataset: List[Tuple[str, Any]]) -> None:
     # extract keys and values from dataset
     keys = list()
     values = list()
@@ -17,7 +17,21 @@ def graphics_plot_pie(dataset:List[Tuple[str, Any]]) -> None:
     plt.pie(values, labels=keys)
     plt.show()
 
-def graphics_plot_bar(dataset:List[Tuple[str, Any]]) -> None:
+def graphics_plot_bar_vertical(dataset: List[Tuple[str, Any]], title: str, xlabel: str, ylabel: str, color: str = 'skyblue', edgecolor: str = 'black', linewidth: float = 1.2) -> None:
+    # extract keys and values from dataset
+    keys = list()
+    values = list()
+    for k, v in enumerate(dataset):
+        keys.append(v[0])
+        values.append(v[1])
+    # plot bar graphics
+    plt.bar(keys, values, color=color, edgecolor=edgecolor, linewidth=linewidth)
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.show()
+
+def graphics_plot_bar_horizon(dataset: List[Tuple[str, Any]]) -> None:
     # extract keys and values from dataset
     keys = list()
     values = list()
@@ -34,7 +48,6 @@ if __name__ == '__main__':
     # query dataset
     dataset = sqlite.query(table_name="internal", where="investigatedDate BETWEEN '2021-01-01' AND '2025-12-31'")
     # sort dataset
-    sorted_dataset = statistics_sort_by_fault_code_b2(dataset)
-    graphics_plot_pie(sorted_dataset)
-    graphics_plot_bar(sorted_dataset)
+    sorted_dataset = statistics_sort_descent_by_fixed_versions(dataset)
+    graphics_plot_bar_vertical(sorted_dataset, 'Statistics fixVersions Distribution', 'fixVersions', 'Number')
     pass

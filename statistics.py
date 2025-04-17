@@ -3,7 +3,7 @@
 from collections import Counter
 from typing import Any, Dict, List, Tuple
 
-def statistics_sort_by_priority(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
+def statistics_sort_descent_by_priority(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
     # create list
     subset = list()
     for k, v in enumerate(dataset):
@@ -13,7 +13,7 @@ def statistics_sort_by_priority(dataset:List[Dict[str, Any]]) -> List[Tuple[str,
     results = Counter(subset).most_common()
     return results
 
-def statistics_sort_by_importance(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
+def statistics_sort_descent_by_importance(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
     # create list
     subset = list()
     for k, v in enumerate(dataset):
@@ -23,7 +23,7 @@ def statistics_sort_by_importance(dataset:List[Dict[str, Any]]) -> List[Tuple[st
     results = Counter(subset).most_common()
     return results
 
-def statistics_sort_by_customers(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
+def statistics_sort_descent_by_customers(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
     # create list
     subset = list()
     for k, v in enumerate(dataset):
@@ -34,7 +34,7 @@ def statistics_sort_by_customers(dataset:List[Dict[str, Any]]) -> List[Tuple[str
     results = Counter(subset).most_common()
     return results
 
-def statistics_sort_by_team_name(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
+def statistics_sort_descent_by_team_name(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
     # create list
     subset = list()
     for k, v in enumerate(dataset):
@@ -44,7 +44,7 @@ def statistics_sort_by_team_name(dataset:List[Dict[str, Any]]) -> List[Tuple[str
     results = Counter(subset).most_common()
     return results
 
-def statistics_sort_by_status(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
+def statistics_sort_descent_by_status(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
     # create list
     subset = list()
     for k, v in enumerate(dataset):
@@ -54,7 +54,7 @@ def statistics_sort_by_status(dataset:List[Dict[str, Any]]) -> List[Tuple[str, A
     results = Counter(subset).most_common()
     return results
 
-def statistics_sort_by_fixed_versions(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
+def statistics_sort_descent_by_fixed_versions(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
     # create list
     subset = list()
     for k, v in enumerate(dataset):
@@ -64,7 +64,7 @@ def statistics_sort_by_fixed_versions(dataset:List[Dict[str, Any]]) -> List[Tupl
     results = Counter(subset).most_common()
     return results
 
-def statistics_sort_by_fault_code_b2(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
+def statistics_sort_descent_by_fault_code_b2(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
     # create list
     subset = list()
     for k, v in enumerate(dataset):
