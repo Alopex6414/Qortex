@@ -426,7 +426,7 @@ class MySQL:
             logger.error(f"Batch execute error: {e}")
             return 0
 
-    def create_users_table(self) -> None:
+    def create_table(self) -> None:
         """create users table"""
         create_table_query = """
         CREATE TABLE IF NOT EXISTS users (
