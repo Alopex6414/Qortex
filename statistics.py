@@ -74,6 +74,16 @@ def statistics_sort_descent_by_fault_code_b2(dataset:List[Dict[str, Any]]) -> Li
     results = Counter(subset).most_common()
     return results
 
+def statistics_sort_descent_by_answer_code(dataset:List[Dict[str, Any]]) -> List[Tuple[str, Any]]:
+    # create list
+    subset = list()
+    for k, v in enumerate(dataset):
+        if v.get('answerCodeFaultWillBeCorrected') is not None:
+            subset.append(v.get('answerCodeFaultWillBeCorrected'))
+    # statistics result
+    results = Counter(subset).most_common()
+    return results
+
 
 if __name__ == '__main__':
     pass
