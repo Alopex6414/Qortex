@@ -426,8 +426,13 @@ class MySQL:
             logger.error(f"Batch execute error: {e}")
             return 0
 
-    def create_table(self) -> None:
-        """create users table"""
+    def create_table(self, table_name: str, schema: Dict[str, str], if_not_exists: bool = True) -> None:
+        """
+        create table
+        :param table_name: name
+        :param schema: define dictionary name
+        :param if_not_exists: whether add IF NOT EXISTS condition
+        """
         create_table_query = """
         CREATE TABLE IF NOT EXISTS users (
             id INT AUTO_INCREMENT PRIMARY KEY,
