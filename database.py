@@ -5,7 +5,9 @@ import logging
 import sqlite3
 import redis
 import mysql.connector
-from mysql.connector import Error
+import subprocess
+from datetime import datetime
+from mysql.connector import Error, pooling
 from typing import Optional, List, Dict, Any, Union, Tuple
 from contextlib import contextmanager
 
@@ -332,162 +334,288 @@ class SQLite3:
 
 
 class MySQL:
-    def __init__(self, host: str, user: str, password: str, database: str, port: int = 3306):
+    def __init__(self,
+                 host: str,
+                 user: str,
+                 password: str,
+                 database: str,
+                 pool_size: int = 5,
+                 autocommit: bool = False,
+                 enable_logging: bool = True):
         """
-        database init
-        :param host: database host
-        :param user: database user
-        :param password: database password
-        :param database: database name
-        :param port: port number, default: 3306
+        初始化数据库连接配置
+        :param pool_size: 连接池大小
+        :param enable_logging: 是否启用查询日志
         """
         self.config = {
-            'host': host,
-            'user': user,
-            'password': password,
-            'database': database,
-            'port': port
+            "host": host,
+            "user": user,
+            "password": password,
+            "database": database,
+            "pool_size": pool_size,
+            "autocommit": autocommit
         }
-        self.connection: Optional[mysql.connector.MySQLConnection] = None
+
+        self.pool = None
+        self.connection = None
+        self.in_transaction = False
+        self.logger = logging.getLogger('MySQLDB')
+        self.enable_logging = enable_logging
+
+        if enable_logging:
+            self._setup_logging()
+
+    def _setup_logging(self):
+        """配置日志记录"""
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.INFO)
+
+    def connect(self) -> None:
+        """创建连接池并获取连接"""
+        try:
+            self.pool = pooling.MySQLConnectionPool(
+                pool_name="mypool",
+                pool_size=self.config["pool_size"],
+                **self.config
+            )
+            self.connection = self.pool.get_connection()
+            self.logger.info(f"成功连接到数据库 {self.config['database']}")
+        except Error as e:
+            self.logger.error(f"连接数据库失败: {e}")
+            raise
+
+    def close(self) -> None:
+        """关闭所有连接"""
+        if self.connection and self.connection.is_connected():
+            self.connection.close()
+            self.logger.info("数据库连接已关闭")
+
+        if self.pool:
+            self.pool.close_all()
+            self.logger.info("连接池已关闭")
+
+    def _execute(self,
+                 sql: str,
+                 params: Optional[Union[tuple, dict]] = None,
+                 commit: bool = False) -> tuple:
+        """
+        执行SQL语句通用方法
+        :return: (受影响行数, 结果集)
+        """
+        cursor = None
+        try:
+            cursor = self.connection.cursor(dictionary=True)
+            cursor.execute(sql, params or ())
+
+            if commit and not self.config["autocommit"]:
+                self.connection.commit()
+
+            if cursor.with_rows:
+                return cursor.rowcount, cursor.fetchall()
+            return cursor.rowcount, None
+
+        except Error as e:
+            self.logger.error(f"SQL执行失败: {e}\nSQL: {sql}\nParams: {params}")
+            if commit and not self.config["autocommit"]:
+                self.connection.rollback()
+            raise
+        finally:
+            if cursor: cursor.close()
+
+    # ---------- ORM风格操作 ----------
+    def find_one(self,
+                 table: str,
+                 where: Optional[dict] = None,
+                 fields: List[str] = ["*"]) -> Optional[dict]:
+        """查询单条记录"""
+        where_clause, params = self._parse_where(where)
+        sql = f"SELECT {','.join(fields)} FROM {table} {where_clause} LIMIT 1"
+        rowcount, result = self._execute(sql, params)
+        return result[0] if result else None
+
+    def insert(self,
+               table: str,
+               data: dict,
+               commit: bool = True) -> int:
+        """插入单条记录"""
+        columns = ",".join(data.keys())
+        placeholders = ",".join(["%s"] * len(data))
+        sql = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
+        rowcount, _ = self._execute(sql, tuple(data.values()), commit)
+        return rowcount
+
+    def update(self,
+               table: str,
+               data: dict,
+               where: dict,
+               commit: bool = True) -> int:
+        """更新记录"""
+        set_clause = ",".join([f"{k}=%s" for k in data.keys()])
+        where_clause, where_params = self._parse_where(where)
+        sql = f"UPDATE {table} SET {set_clause} {where_clause}"
+        params = tuple(data.values()) + where_params
+        rowcount, _ = self._execute(sql, params, commit)
+        return rowcount
+
+    def delete(self,
+               table: str,
+               where: dict,
+               commit: bool = True) -> int:
+        """删除记录"""
+        where_clause, params = self._parse_where(where)
+        sql = f"DELETE FROM {table} {where_clause}"
+        rowcount, _ = self._execute(sql, params, commit)
+        return rowcount
+
+    # ---------- 高级功能 ----------
+    def paginate(self,
+                 table: str,
+                 page: int = 1,
+                 per_page: int = 10,
+                 where: Optional[dict] = None,
+                 order_by: str = "id DESC") -> dict:
+        """分页查询"""
+        offset = (page - 1) * per_page
+        where_clause, params = self._parse_where(where)
+        sql = f"SELECT * FROM {table} {where_clause} ORDER BY {order_by} LIMIT %s OFFSET %s"
+        params += (per_page, offset)
+        rowcount, result = self._execute(sql, params)
+        return {
+            "data": result,
+            "page": page,
+            "per_page": per_page,
+            "total": self.count(table, where)
+        }
+
+    def bulk_insert(self,
+                    table: str,
+                    data: List[dict],
+                    commit: bool = True) -> int:
+        """批量插入数据"""
+        if not data:
+            return 0
+
+        columns = ",".join(data[0].keys())
+        placeholders = ",".join(["%s"] * len(data[0]))
+        sql = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
+        values = [tuple(item.values()) for item in data]
+
+        cursor = None
+        try:
+            cursor = self.connection.cursor()
+            cursor.executemany(sql, values)
+            if commit:
+                self.connection.commit()
+            return cursor.rowcount
+        except Error as e:
+            self.logger.error(f"批量插入失败: {e}")
+            if commit:
+                self.connection.rollback()
+            raise
+        finally:
+            if cursor: cursor.close()
+
+    # ---------- 实用工具方法 ----------
+    @staticmethod
+    def _parse_where(where: Optional[dict]) -> tuple:
+        """解析WHERE条件"""
+        if not where:
+            return "", ()
+
+        conditions = []
+        params = []
+        for k, v in where.items():
+            if isinstance(v, list):
+                conditions.append(f"{k} IN ({','.join(['%s'] * len(v))})")
+                params.extend(v)
+            else:
+                conditions.append(f"{k}=%s")
+                params.append(v)
+
+        return "WHERE " + " AND ".join(conditions), tuple(params)
+
+    def backup(self,
+               output_file: str,
+               options: str = "--single-transaction") -> bool:
+        """执行数据库备份"""
+        try:
+            cmd = f"mysqldump -h {self.config['host']} -u {self.config['user']} " \
+                  f"-p{self.config['password']} {self.config['database']} {options} > {output_file}"
+            subprocess.run(cmd, shell=True, check=True)
+            return True
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"备份失败: {e}")
+            return False
+
+    def restore(self, input_file: str) -> bool:
+        """执行数据库恢复"""
+        try:
+            cmd = f"mysql -h {self.config['host']} -u {self.config['user']} " \
+                  f"-p{self.config['password']} {self.config['database']} < {input_file}"
+            subprocess.run(cmd, shell=True, check=True)
+            return True
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"恢复失败: {e}")
+            return False
+
+    def table_exists(self, table_name: str) -> bool:
+        """检查表是否存在"""
+        sql = """
+        SELECT COUNT(*) AS count 
+        FROM information_schema.tables 
+        WHERE table_schema = %s AND table_name = %s
+        """
+        params = (self.config['database'], table_name)
+        rowcount, result = self._execute(sql, params)
+        return result[0]['count'] > 0 if result else False
+
+    # ---------- 事务管理增强 ----------
+    def begin(self) -> None:
+        """开启事务"""
+        if not self.in_transaction:
+            self.connection.start_transaction()
+            self.in_transaction = True
+            self.logger.info("事务已开启")
+
+    def savepoint(self, name: str) -> None:
+        """创建保存点"""
+        self._execute(f"SAVEPOINT {name}")
+        self.logger.info(f"保存点 {name} 已创建")
+
+    def rollback_to(self, name: str) -> None:
+        """回滚到保存点"""
+        self._execute(f"ROLLBACK TO SAVEPOINT {name}")
+        self.logger.info(f"已回滚到保存点 {name}")
+
+    # ---------- 类型转换 ----------
+    @staticmethod
+    def convert_types(row: dict) -> dict:
+        """自动转换数据类型"""
+        converted = {}
+        for key, value in row.items():
+            if isinstance(value, datetime):
+                converted[key] = value.isoformat()
+            elif isinstance(value, bytes):
+                converted[key] = value.decode('utf-8')
+            elif isinstance(value, float):
+                converted[key] = float(value)
+            else:
+                converted[key] = value
+        return converted
 
     def __enter__(self):
-        """enter"""
         self.connect()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """exit"""
+        if exc_type is not None and self.in_transaction:
+            self.connection.rollback()
+            self.logger.warning("发生异常，事务已回滚")
         self.close()
-
-    def connect(self) -> bool:
-        """establish database connection"""
-        try:
-            self.connection = mysql.connector.connect(**self.config)
-            logger.info("Connected to database successfully")
-            return True
-        except Error as e:
-            logger.error(f"Connected to database error: {e}")
-            return False
-
-    def close(self) -> None:
-        """close database connection"""
-        if self.connection and self.connection.is_connected():
-            self.connection.close()
-            logger.info("Database already been closed")
-
-    def execute_query(self, query: str, params: tuple = None, dictionary: bool = True) -> List[Dict[str, Any]]:
-        """
-        execute query
-        :param query: SQL query
-        :param params: query parameters
-        :param dictionary: whether return dictionary or not
-        :return: result
-        """
-        results = []
-        try:
-            with self.connection.cursor(dictionary=dictionary) as cursor:
-                cursor.execute(query, params)
-                results = cursor.fetchall()
-        except Error as e:
-            logger.error(f"Query failed: {e}")
-        return results
-
-    def execute_command(self, query: str, params: tuple = None) -> int:
-        """
-        execute command
-        :param query: SQL query
-        :param params: query parameters
-        :return: result
-        """
-        try:
-            with self.connection.cursor() as cursor:
-                cursor.execute(query, params)
-                self.connection.commit()
-                return cursor.rowcount
-        except Error as e:
-            self.connection.rollback()
-            logger.error(f"Execute error: {e}")
-            return 0
-
-    def batch_execute(self, query: str, params_list: List[tuple]) -> int:
-        """
-        batch execute command
-        :param query: SQL query
-        :param params_list: query parameter list
-        :return: result
-        """
-        try:
-            with self.connection.cursor() as cursor:
-                cursor.executemany(query, params_list)
-                self.connection.commit()
-                return cursor.rowcount
-        except Error as e:
-            self.connection.rollback()
-            logger.error(f"Batch execute error: {e}")
-            return 0
-
-    def create_table(self, table_name: str, schema: Dict[str, str], if_not_exists: bool = True) -> None:
-        """
-        create table
-        :param table_name: name
-        :param schema: define dictionary name
-        :param if_not_exists: whether add IF NOT EXISTS condition
-        """
-        create_table_query = """
-        CREATE TABLE IF NOT EXISTS users (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(50) NOT NULL,
-            age INT,
-            email VARCHAR(100)
-        )
-        """
-        self.execute_command(create_table_query)
-        logger.info("Users table created successfully")
-
-    def insert_user(self, name: str, age: int, email: str) -> int:
-        """insert user"""
-        insert_query = """
-        INSERT INTO users (name, age, email)
-        VALUES (%s, %s, %s)
-        """
-        rowcount = self.execute_command(insert_query, (name, age, email))
-        if rowcount > 0:
-            logger.info(f"User {name} insert successfully")
-        return rowcount
-
-    def batch_insert_users(self, users: List[tuple]) -> int:
-        """batch insert users"""
-        insert_query = """
-        INSERT INTO users (name, age, email)
-        VALUES (%s, %s, %s)
-        """
-        rowcount = self.batch_execute(insert_query, users)
-        if rowcount > 0:
-            logger.info(f"Batch insert users successfully，total {rowcount} records inserted")
-        return rowcount
-
-    def get_all_users(self) -> List[Dict[str, Any]]:
-        """get all users"""
-        query = "SELECT * FROM users"
-        results = self.execute_query(query)
-        logger.info(f"find {len(results)} users records")
-        return results
-
-    def update_user_age(self, user_id: int, new_age: int) -> int:
-        """update user age"""
-        update_query = "UPDATE users SET age = %s WHERE id = %s"
-        rowcount = self.execute_command(update_query, (new_age, user_id))
-        if rowcount > 0:
-            logger.info(f"user {user_id} age updated successfully")
-        return rowcount
-
-    def delete_user(self, user_id: int) -> int:
-        """delete user"""
-        delete_query = "DELETE FROM users WHERE id = %s"
-        rowcount = self.execute_command(delete_query, (user_id,))
-        if rowcount > 0:
-            logger.info(f"user {user_id} deleted successfully")
-        return rowcount
 
 
 class RedisClient:
