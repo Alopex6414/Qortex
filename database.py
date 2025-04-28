@@ -334,18 +334,11 @@ class SQLite3:
 
 
 class MySQL:
-    def __init__(self,
-                 host: str,
-                 user: str,
-                 password: str,
-                 database: str,
-                 pool_size: int = 5,
-                 autocommit: bool = False,
-                 enable_logging: bool = True):
+    def __init__(self, host: str, user: str, password: str, database: str, pool_size: int = 5, autocommit: bool = False, enable_logging: bool = True):
         """
-        初始化数据库连接配置
-        :param pool_size: 连接池大小
-        :param enable_logging: 是否启用查询日志
+        database init
+        :param pool_size: pool size
+        :param enable_logging: enable logging
         """
         self.config = {
             "host": host,
@@ -355,21 +348,18 @@ class MySQL:
             "pool_size": pool_size,
             "autocommit": autocommit
         }
-
         self.pool = None
         self.connection = None
         self.in_transaction = False
-        self.logger = logging.getLogger('MySQLDB')
+        self.logger = logging.getLogger('MySQL')
         self.enable_logging = enable_logging
-
         if enable_logging:
             self._setup_logging()
 
     def _setup_logging(self):
-        """配置日志记录"""
+        """setup logging"""
         handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
         self.logger.setLevel(logging.INFO)
