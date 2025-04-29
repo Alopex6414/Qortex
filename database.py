@@ -403,41 +403,30 @@ class MySQL:
             return cursor.rowcount, None
 
         except Error as e:
-            self.logger.error(f"SQL执行失败: {e}\nSQL: {sql}\nParams: {params}")
+            self.logger.error(f"SQL query execution failed: {e}\nSQL: {sql}\nParams: {params}")
             if commit and not self.config["autocommit"]:
                 self.connection.rollback()
             raise
         finally:
             if cursor: cursor.close()
 
-    # ---------- ORM风格操作 ----------
-    def find_one(self,
-                 table: str,
-                 where: Optional[dict] = None,
-                 fields: List[str] = ["*"]) -> Optional[dict]:
-        """查询单条记录"""
+    def find_one(self, table: str, where: Optional[dict] = None, fields: List[str] = ["*"]) -> Optional[dict]:
+        """single search query"""
         where_clause, params = self._parse_where(where)
         sql = f"SELECT {','.join(fields)} FROM {table} {where_clause} LIMIT 1"
         rowcount, result = self._execute(sql, params)
         return result[0] if result else None
 
-    def insert(self,
-               table: str,
-               data: dict,
-               commit: bool = True) -> int:
-        """插入单条记录"""
+    def insert(self, table: str, data: dict, commit: bool = True) -> int:
+        """single insert query"""
         columns = ",".join(data.keys())
         placeholders = ",".join(["%s"] * len(data))
         sql = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
         rowcount, _ = self._execute(sql, tuple(data.values()), commit)
         return rowcount
 
-    def update(self,
-               table: str,
-               data: dict,
-               where: dict,
-               commit: bool = True) -> int:
-        """更新记录"""
+    def update(self, table: str, data: dict, where: dict, commit: bool = True) -> int:
+        """update query"""
         set_clause = ",".join([f"{k}=%s" for k in data.keys()])
         where_clause, where_params = self._parse_where(where)
         sql = f"UPDATE {table} SET {set_clause} {where_clause}"
@@ -445,24 +434,15 @@ class MySQL:
         rowcount, _ = self._execute(sql, params, commit)
         return rowcount
 
-    def delete(self,
-               table: str,
-               where: dict,
-               commit: bool = True) -> int:
-        """删除记录"""
+    def delete(self, table: str, where: dict, commit: bool = True) -> int:
+        """delete query"""
         where_clause, params = self._parse_where(where)
         sql = f"DELETE FROM {table} {where_clause}"
         rowcount, _ = self._execute(sql, params, commit)
         return rowcount
 
-    # ---------- 高级功能 ----------
-    def paginate(self,
-                 table: str,
-                 page: int = 1,
-                 per_page: int = 10,
-                 where: Optional[dict] = None,
-                 order_by: str = "id DESC") -> dict:
-        """分页查询"""
+    def paginate(self, table: str, page: int = 1, per_page: int = 10, where: Optional[dict] = None, order_by: str = "id DESC") -> dict:
+        """paginate query"""
         offset = (page - 1) * per_page
         where_clause, params = self._parse_where(where)
         sql = f"SELECT * FROM {table} {where_clause} ORDER BY {order_by} LIMIT %s OFFSET %s"
@@ -475,11 +455,8 @@ class MySQL:
             "total": self.count(table, where)
         }
 
-    def bulk_insert(self,
-                    table: str,
-                    data: List[dict],
-                    commit: bool = True) -> int:
-        """批量插入数据"""
+    def bulk_insert(self, table: str, data: List[dict], commit: bool = True) -> int:
+        """bulk insert query"""
         if not data:
             return 0
 
@@ -496,7 +473,7 @@ class MySQL:
                 self.connection.commit()
             return cursor.rowcount
         except Error as e:
-            self.logger.error(f"批量插入失败: {e}")
+            self.logger.error(f"bulk insert failed: {e}")
             if commit:
                 self.connection.rollback()
             raise
