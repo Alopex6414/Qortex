@@ -365,7 +365,7 @@ class MySQL:
         self.logger.setLevel(logging.INFO)
 
     def connect(self) -> None:
-        """创建连接池并获取连接"""
+        """connect to MySQL database pool"""
         try:
             self.pool = pooling.MySQLConnectionPool(
                 pool_name="mypool",
@@ -373,29 +373,23 @@ class MySQL:
                 **self.config
             )
             self.connection = self.pool.get_connection()
-            self.logger.info(f"成功连接到数据库 {self.config['database']}")
+            self.logger.info(f"connect to database successfully: {self.config['database']}")
         except Error as e:
-            self.logger.error(f"连接数据库失败: {e}")
+            self.logger.error(f"connect to database failed: {e}")
             raise
 
     def close(self) -> None:
-        """关闭所有连接"""
+        """close all connections"""
         if self.connection and self.connection.is_connected():
             self.connection.close()
-            self.logger.info("数据库连接已关闭")
+            self.logger.info("database connection closed")
 
         if self.pool:
             self.pool.close_all()
-            self.logger.info("连接池已关闭")
+            self.logger.info("database pool closed")
 
-    def _execute(self,
-                 sql: str,
-                 params: Optional[Union[tuple, dict]] = None,
-                 commit: bool = False) -> tuple:
-        """
-        执行SQL语句通用方法
-        :return: (受影响行数, 结果集)
-        """
+    def _execute(self, sql: str, params: Optional[Union[tuple, dict]] = None, commit: bool = False) -> tuple:
+        """execute SQL query"""
         cursor = None
         try:
             cursor = self.connection.cursor(dictionary=True)
