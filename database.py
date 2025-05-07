@@ -480,10 +480,9 @@ class MySQL:
         finally:
             if cursor: cursor.close()
 
-    # ---------- 实用工具方法 ----------
     @staticmethod
     def _parse_where(where: Optional[dict]) -> tuple:
-        """解析WHERE条件"""
+        """parse where condition"""
         if not where:
             return "", ()
 
@@ -502,29 +501,29 @@ class MySQL:
     def backup(self,
                output_file: str,
                options: str = "--single-transaction") -> bool:
-        """执行数据库备份"""
+        """perform database backup"""
         try:
             cmd = f"mysqldump -h {self.config['host']} -u {self.config['user']} " \
                   f"-p{self.config['password']} {self.config['database']} {options} > {output_file}"
             subprocess.run(cmd, shell=True, check=True)
             return True
         except subprocess.CalledProcessError as e:
-            self.logger.error(f"备份失败: {e}")
+            self.logger.error(f"backup failed: {e}")
             return False
 
     def restore(self, input_file: str) -> bool:
-        """执行数据库恢复"""
+        """perform database restore"""
         try:
             cmd = f"mysql -h {self.config['host']} -u {self.config['user']} " \
                   f"-p{self.config['password']} {self.config['database']} < {input_file}"
             subprocess.run(cmd, shell=True, check=True)
             return True
         except subprocess.CalledProcessError as e:
-            self.logger.error(f"恢复失败: {e}")
+            self.logger.error(f"restore failed: {e}")
             return False
 
     def table_exists(self, table_name: str) -> bool:
-        """检查表是否存在"""
+        """check table exists"""
         sql = """
         SELECT COUNT(*) AS count 
         FROM information_schema.tables 
@@ -534,25 +533,23 @@ class MySQL:
         rowcount, result = self._execute(sql, params)
         return result[0]['count'] > 0 if result else False
 
-    # ---------- 事务管理增强 ----------
     def begin(self) -> None:
-        """开启事务"""
+        """begin"""
         if not self.in_transaction:
             self.connection.start_transaction()
             self.in_transaction = True
-            self.logger.info("事务已开启")
+            self.logger.info("begin")
 
     def savepoint(self, name: str) -> None:
-        """创建保存点"""
+        """create savepoint"""
         self._execute(f"SAVEPOINT {name}")
-        self.logger.info(f"保存点 {name} 已创建")
+        self.logger.info(f"savepoint {name} successfully created")
 
     def rollback_to(self, name: str) -> None:
-        """回滚到保存点"""
+        """rollback to savepoint"""
         self._execute(f"ROLLBACK TO SAVEPOINT {name}")
-        self.logger.info(f"已回滚到保存点 {name}")
+        self.logger.info(f"already rollback to savepoint {name}")
 
-    # ---------- 类型转换 ----------
     @staticmethod
     def convert_types(row: dict) -> dict:
         """自动转换数据类型"""
