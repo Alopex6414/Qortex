@@ -552,7 +552,7 @@ class MySQL:
 
     @staticmethod
     def convert_types(row: dict) -> dict:
-        """自动转换数据类型"""
+        """auto convert types"""
         converted = {}
         for key, value in row.items():
             if isinstance(value, datetime):
@@ -572,7 +572,7 @@ class MySQL:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None and self.in_transaction:
             self.connection.rollback()
-            self.logger.warning("发生异常，事务已回滚")
+            self.logger.warning("exception during transaction rollback")
         self.close()
 
 
